@@ -3,8 +3,18 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import 'dotenv/config'
+import cors from 'cors';
 
 const app = express();
+
+const corsOptions = {
+    origin: [process.env.FRONTEND_HOST_URL, process.env.FRONTEND_AUTH_URL],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 // Request logging with morgan
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
