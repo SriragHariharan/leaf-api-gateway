@@ -43,6 +43,15 @@ app.use('/api/v1/user', createProxyMiddleware({
     },
 }));
 
+app.use('/api/v1/post', createProxyMiddleware({
+    target: process.env.POSTS_SERVICE_URL,
+    changeOrigin: true,
+    onProxyReq: (proxyReq, req) => {
+        const forwardedFor = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        proxyReq.headers['X-Forwarded-For'] = forwardedFor;
+    },
+}));
+
 app.listen(process.env.PORT, () => {
     console.log(`Reverse proxy server running at http://localhost:${process.env.PORT}`);
 });
