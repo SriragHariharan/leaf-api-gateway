@@ -62,6 +62,16 @@ app.use('/api/v1/feed', createProxyMiddleware({
     },
 }));
 
+/* chat service */
+app.use('/api/v1/chat', createProxyMiddleware({
+    target: process.env.CHAT_SERVICE_URL,
+    changeOrigin: true,
+    onProxyReq: (proxyReq, req) => {
+        const forwardedFor = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        proxyReq.headers['X-Forwarded-For'] = forwardedFor;
+    },
+}));
+
 app.listen(process.env.PORT, () => {
     console.log(`Reverse proxy server running at http://localhost:${process.env.PORT}`);
 });
