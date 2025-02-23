@@ -4,8 +4,10 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import 'dotenv/config'
 import cors from 'cors';
+import http from 'http';
 
 const app = express();
+const server = http.createServer(app);
 
 const corsOptions = {
     origin: [process.env.FRONTEND_HOST_URL, process.env.FRONTEND_AUTH_URL, process.env.FRONTEND_PROFILE_URL],
@@ -62,16 +64,30 @@ app.use('/api/v1/feed', createProxyMiddleware({
     },
 }));
 
-/* chat service */
 app.use('/api/v1/chat', createProxyMiddleware({
     target: process.env.CHAT_SERVICE_URL,
     changeOrigin: true,
-    onProxyReq: (proxyReq, req) => {
-        const forwardedFor = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-        proxyReq.headers['X-Forwarded-For'] = forwardedFor;
-    },
+    ws: true,  // Ensure WebSockets are enabled
 }));
 
-app.listen(process.env.PORT, () => {
-    console.log(`Reverse proxy server running at http://localhost:${process.env.PORT}`);
+app.use('/api/v1/notification', createProxyMiddleware({
+    target: process.env.NOTIFICATION_SERVICE_URL,
+    changeOrigin: true,
+    ws: true,  // Ensure WebSockets are enabled
+}));
+
+// Handle WebSocket Upgrades
+server.on('upgrade', (req, socket, head) => {
+    console.log("starts with URL ::: ", req.url);
+    if (req.url.startsWith('/api/v1/chat')) {
+        console.log('Upgrading WebSocket connection for Chat Service...');
+        createProxyMiddleware({ target: process.env.CHAT_SERVICE_URL, ws: true })(req, socket, head);
+    } else if (req.url.startsWith('/api/v1/notification')) {
+        console.log('Upgrading WebSocket connection for Notification Service...');
+        createProxyMiddleware({ target: process.env.NOTIFICATION_SERVICE_URL, ws: true })(req, socket, head);
+    }
+});
+
+server.listen(process.env.PORT, () => {
+    console.log(`API Gateway running on port ${process.env.PORT}`);
 });
